@@ -34,20 +34,14 @@ def capitalize_country_name(name):
 
         if w.startswith('('):
             w = w.replace('(', '')
-            if w in always_lower:
-                w = w.lower()
-            else:
-                w = w.capitalize()
-            cap_list.append('(' + w)
+            w = w.lower() if w in always_lower else w.capitalize()
+            cap_list.append(f'({w}')
             continue
 
         if w[-1] == ')':
             w = w.replace(')', '')
-            if w in always_lower:
-                w = w.lower()
-            else:
-                w = w.capitalize()
-            cap_list.append(w + ')')
+            w = w.lower() if w in always_lower else w.capitalize()
+            cap_list.append(f'{w})')
             continue
 
         if w in always_lower:
@@ -55,8 +49,7 @@ def capitalize_country_name(name):
             continue
         cap_list.append(w.capitalize())
 
-    capitalized = " ".join(cap_list)
-    return capitalized
+    return " ".join(cap_list)
 
 
 def process_statoids_row(tr):
@@ -70,8 +63,7 @@ def process_statoids_row(tr):
                 # if a cell is taking up more than one column,
                 # append the same number of blanks to the row
                 assert td.get('colspan').isdigit()
-                for col in xrange(int(td.get('colspan'))):
-                    row.append('')
+                row.extend('' for _ in xrange(int(td.get('colspan'))))
                 continue
         if len(td.getchildren()) > 1:
             if td.find('.//br') is not None:
@@ -83,8 +75,6 @@ def process_statoids_row(tr):
                                             zip(*[iter(td.text_content())]*5))))
                     continue
         if ((len(row) > 1) and (row[1] in ["SH", "RS"])):
-            # Saint Helena and Serbia dial cells have anchors to footnotes
-            # so just append the number
             if td.text_content()[:3].isdigit():
                 code = td.text_content().split(' ')[0]
                 row.append(code)
@@ -93,7 +83,7 @@ def process_statoids_row(tr):
             if td.find('.//br') is not None:
                 if len(td.getchildren()) == 1:
                     if td.getchildren()[0].tag == 'br':
-                        td.text = td.text + "," + td.getchildren()[0].tail
+                        td.text = f"{td.text},{td.getchildren()[0].tail}"
                         row.append(td.text)
                         continue
             if td.find("code") is not None:
@@ -169,7 +159,7 @@ for tr in doc.find_class('e'):
     row_dict = collections.OrderedDict(zip(column_names, row))
     # statoids-assigned 'Entity' name is not really a standard
     row_dict.pop('Entity')
-    table_rows.update({row_dict[alpha2_key]: row_dict})
+    table_rows[row_dict[alpha2_key]] = row_dict
 
 # and again for the other half
 for tr in doc.find_class('o'):
@@ -177,7 +167,7 @@ for tr in doc.find_class('o'):
     row_dict = collections.OrderedDict(zip(column_names, row))
     # statoids-assigned 'Entity' name is not really a standard
     row_dict.pop('Entity')
-    table_rows.update({row_dict[alpha2_key]: row_dict})
+    table_rows[row_dict[alpha2_key]] = row_dict
 
 keyed_by = "ISO3166-1-Alpha-3"
 
@@ -192,8 +182,7 @@ for alpha2, info in table_rows.iteritems():
 
     # add combined dict to global (pun intented) data structure
     ckey = cinfo[keyed_by]
-    country = country_info.get(ckey)
-    if country:
+    if country := country_info.get(ckey):
         country.update(cinfo)
         country_info.update({ckey: country})
     else:

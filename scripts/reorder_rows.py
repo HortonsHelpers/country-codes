@@ -12,9 +12,7 @@ rows = []
 with open('data/country-codes-reordered.csv', 'rb') as f:
     reader = utils.UnicodeReader(f)
     headers = reader.next()
-    for row in reader:
-        rows.append(row)
-
+    rows.extend(iter(reader))
 sorted(rows, key=lambda row: row[headers.index('official_name_en')], cmp=collator.compare)
 
 with open('data/country-codes-reordered-sorted.csv', 'wb') as f:
